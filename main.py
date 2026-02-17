@@ -4,6 +4,7 @@ import telebot
 from flask import Flask
 from threading import Thread
 from anthropic import Anthropic
+from datetime import datetime
 
 # --- 1. HERZSCHLAG FÜR RENDER ---
 app = Flask('')
@@ -28,12 +29,20 @@ ANTHROPIC_KEY  = os.getenv("ANTHROPIC_KEY")
 
 claude_client = Anthropic(api_key=ANTHROPIC_KEY)
 
-SYSTEM_PROMPT = """Du bist AIDAN Executive – ein proaktiver digitaler Chief of Staff.
+# Aktuelles Datum dynamisch generieren
+CURRENT_DATE = datetime.now().strftime("%A, %d. %B %Y")
+
+SYSTEM_PROMPT = f"""Du bist AIDAN Executive – ein proaktiver digitaler Chief of Staff.
 Antworte auf Deutsch, präzise und professionell.
 Keine Füllwörter. Maximal 3 Absätze pro Antwort.
 
-WICHTIG: Du hast Zugriff auf Web-Suche für aktuelle Informationen.
-Nutze sie proaktiv für: Wetter, News, Aktienkurse, Sportergebnisse."""
+AKTUELLES DATUM: {CURRENT_DATE}
+
+WICHTIG: 
+- Nutze Web-Suche für aktuelle Informationen (Wetter, News, Aktienkurse)
+- Wenn nach dem Datum gefragt wird, antworte mit "Heute ist {CURRENT_DATE}"
+- Bei zeitbezogenen Fragen: Beziehe dich auf dieses Datum als "jetzt"
+"""
 
 # --- 3. DAS GEHIRN (mit Web-Search) ---
 async def ask_aidan(user_text: str) -> str:
@@ -79,4 +88,5 @@ def handle_tg(message):
 if __name__ == "__main__":
     keep_alive()
     print("🚀 AIDAN (powered by Claude) startet...")
+    print(f"📅 Aktuelles Datum: {CURRENT_DATE}")
     tg_bot.infinity_polling(timeout=60, long_polling_timeout=30)
