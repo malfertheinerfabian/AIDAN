@@ -37,6 +37,7 @@ Nutze sie proaktiv für: Wetter, News, Aktienkurse, Sportergebnisse."""
 
 # --- 3. DAS GEHIRN (mit Web-Search) ---
 async def ask_aidan(user_text: str) -> str:
+    """Claude API Call mit automatischer Web-Suche wenn nötig."""
     try:
         loop = asyncio.get_event_loop()
         
@@ -64,6 +65,7 @@ tg_bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode=None)
 
 @tg_bot.message_handler(func=lambda message: True)
 def handle_tg(message):
+    """Empfängt Telegram-Nachrichten und antwortet mit Claude."""
     try:
         loop = asyncio.new_event_loop()
         reply = loop.run_until_complete(ask_aidan(message.text))
@@ -78,21 +80,3 @@ if __name__ == "__main__":
     keep_alive()
     print("🚀 AIDAN (powered by Claude) startet...")
     tg_bot.infinity_polling(timeout=60, long_polling_timeout=30)
-```
-
----
-
-### 3. Anthropic API Key holen:
-
-1. Gehe zu [console.anthropic.com](https://console.anthropic.com)
-2. **Get API Key** (Free Tier: $5 Guthaben gratis)
-3. Kopiere den Key (beginnt mit `sk-ant-...`)
-
----
-
-### 4. In Render eintragen:
-
-**Environment Variables:**
-```
-TELEGRAM_TOKEN  = dein_telegram_token
-ANTHROPIC_KEY   = sk-ant-api03-...  ← NEU
