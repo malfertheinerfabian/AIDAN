@@ -1,6 +1,5 @@
 import os
 import asyncio
-import discord
 import telebot
 from flask import Flask
 from threading import Thread
@@ -12,7 +11,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "AIDAN MULTI-CHANNEL ONLINE"
+    return "AIDAN TELEGRAM ONLINE"
 
 def keep_alive():
     t = Thread(
@@ -25,7 +24,6 @@ def keep_alive():
     t.start()
 
 # --- 2. KONFIGURATION ---
-DISCORD_TOKEN   = os.getenv("DISCORD_TOKEN")
 TELEGRAM_TOKEN  = os.getenv("TELEGRAM_TOKEN")
 G_KEY           = os.getenv("G_KEY")
 
@@ -35,13 +33,10 @@ SYSTEM_PROMPT = """Du bist AIDAN Executive – ein proaktiver digitaler Chief of
 Antworte präzise, professionell und lösungsorientiert.
 Keine Füllwörter. Maximal 3 Absätze pro Antwort."""
 
-# --- 3. DAS GEMEINSAME GEHIRN (jetzt async) ---
+# --- 3. DAS GEMEINSAME GEHIRN ---
 async def ask_aidan(user_text: str) -> str:
-    """Async Wrapper – blockiert den Event Loop nicht mehr."""
     try:
         loop = asyncio.get_event_loop()
-        
-        # Synchronen SDK-Call in ThreadPool auslagern
         response = await loop.run_in_executor(
             None,
             lambda: ai_client.models.generate_content(
@@ -53,7 +48,6 @@ async def ask_aidan(user_text: str) -> str:
             )
         )
         return response.text
-    
     except Exception as e:
         return f"⚠️ AIDAN Brain-Error: {e}"
 
@@ -62,9 +56,7 @@ tg_bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode=None)
 
 @tg_bot.message_handler(func=lambda message: True)
 def handle_tg(message):
-    """Telegram läuft synchron – eigener Thread, kein Konflikt."""
     try:
-        # Neuen Event Loop für diesen Thread erstellen
         loop = asyncio.new_event_loop()
         reply = loop.run_until_complete(ask_aidan(message.text))
         loop.close()
@@ -73,47 +65,8 @@ def handle_tg(message):
     
     tg_bot.reply_to(message, reply)
 
-# --- 5. DISCORD LOGIK ---
-intents = discord.Intents.default()
-intents.message_content = True  # Explizit erforderlich ab Discord.py 2.0
-ds_client = discord.Client(intents=intents)
-
-@ds_client.event
-async def on_ready():
-    print(f'✅ Discord: {ds_client.user} online')
-    print(f'📡 Server: {[g.name for g in ds_client.guilds]}')
-
-@ds_client.event
-async def on_message(message):
-    # Bot-Nachrichten ignorieren
-    if message.author == ds_client.user:
-        return
-    
-    # ✅ NUR antworten wenn Bot erwähnt wird
-    # Entferne diese Bedingung für Antwort auf ALLE Nachrichten
-    if ds_client.user not in message.mentions:
-        return
-
-    async with message.channel.typing():
-        reply = await ask_aidan(message.content)  # Jetzt echtes await
-        
-        # Discord 2000-Zeichen Limit absichern
-        if len(reply) > 1900:
-            reply = reply[:1900] + "\n\n_[Antwort gekürzt]_"
-        
-        await message.channel.send(reply)
-
-# --- 6. DER MULTI-START ---
-def run_telegram():
-    print("🚀 Telegram Bot startet...")
-    tg_bot.infinity_polling(timeout=60, long_polling_timeout=30)
-
+# --- 5. START ---
 if __name__ == "__main__":
     keep_alive()
-    Thread(target=run_telegram, daemon=True).start()
-    
-    if DISCORD_TOKEN:
-        print("🚀 Discord Bot startet...")
-        ds_client.run(DISCORD_TOKEN)
-    else:
-        print("❌ DISCORD_TOKEN fehlt in Environment Variables")
+    print("🚀 AIDAN Telegram startet...")
+    tg_bot.infinity_polling(timeout=60, long_polling_timeout=30)
